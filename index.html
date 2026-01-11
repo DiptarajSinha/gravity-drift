@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gravity Drift | Adventurer Mode</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --netflix-red: #E30813;
+            --deep-black: #000000;
+            --soft-gray: #B3B3B3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+
+        body {
+            background-color: var(--deep-black);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Netflix-style UI */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px;
+            z-index: 10;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0.8;
+        }
+
+        .logo {
+            color: var(--netflix-red);
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        .mode-indicator {
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 12px;
+            border-radius: 4px;
+        }
+
+        footer {
+            text-align: center;
+            transition: opacity 0.5s;
+        }
+
+        .hint {
+            color: var(--soft-gray);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        canvas {
+            display: block;
+            filter: blur(1px);
+            /* Softens the drift for a cinematic feel */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui-layer">
+        <header>
+            <div class="logo">Gravity Drift</div>
+            <div class="mode-indicator">ADVENTURER MODE</div>
+        </header>
+
+        <footer>
+            <p class="hint">Move to attract • Hold to pulse • Drift to relax</p>
+        </footer>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let particles = [];
+        const particleCount = 150;
+        const mouse = { x: -1000, y: -1000, active: false };
+
+        // Configuration
+        const config = {
+            gravityStrength: 0.05,
+            friction: 0.98,
+            particleColor: '#E30813',
+            driftSpeed: 0.2
+        };
+
+        class Particle {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.radius = Math.random() * 2 + 1;
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+
+            update() {
+                // Natural Drift
+                this.vx += (Math.random() - 0.5) * config.driftSpeed;
+                this.vy += (Math.random() - 0.5) * config.driftSpeed;
+
+                // Gravity toward cursor
+                if (mouse.active) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 600) {
+                        this.vx += dx * config.gravityStrength / 100;
+                        this.vy += dy * config.gravityStrength / 100;
+                    }
+                }
+
+                this.vx *= config.friction;
+                this.vy *= config.friction;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Screen Wrap
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(227, 8, 19, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        function setup() {
+            resize();
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; // Trail effect
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Input Listeners
+        window.addEventListener('resize', resize);
+
+        const updateMouse = (e) => {
+            mouse.active = true;
+            mouse.x = e.clientX || e.touches[0].clientX;
+            mouse.y = e.clientY || e.touches[0].clientY;
+        };
+
+        window.addEventListener('mousemove', updateMouse);
+        window.addEventListener('touchstart', updateMouse);
+        window.addEventListener('touchmove', updateMouse);
+        window.addEventListener('touchend', () => mouse.active = false);
+
+        setup();
+        animate();
+    </script>
+</body>
+
+</html>
